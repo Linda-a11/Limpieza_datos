@@ -122,7 +122,7 @@ fecha_hasta = st.sidebar.date_input("Hasta", pd.to_datetime("2026-08-30")).strft
 calidad = st.sidebar.selectbox("Calidad", [1, 0], index=0, help="1 = solo datos validados")
 consultar = st.sidebar.button("🔍 Consultar", type="primary")
 
-st.title("🌊 Nivel de ríos y quebradas — CORNARE")
+st.title("🌊 san Luis Estación — Medio Ambiente")
 st.caption(f"Estudiante: **{nombre_estudiante}** · Estación: **{codigo_estacion}**")
 
 # ------------------------------------------------------------------

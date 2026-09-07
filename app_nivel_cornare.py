@@ -124,7 +124,7 @@ consultar = st.sidebar.button("🔍 Consultar y Analizar Riesgo", type="primary"
 # ------------------------------------------------------------------
 # Encabezado Principal
 # ------------------------------------------------------------------
-st.title("🌊 Sistema Alertador de Riesgo por Crecidas Rápidas- Estacion San Luis (#21)")
+st.title("🌱🌊 EcoCaudal San Luis — Alerta Temprana y Cuidado de la Cuenca (#21)")
 st.caption(f"Proyecto de Ingeniería Ambiental · Estudiante: **{nombre_estudiante}** · Estación: **{codigo_estacion}**")
 
 # ------------------------------------------------------------------

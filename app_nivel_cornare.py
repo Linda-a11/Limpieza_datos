@@ -116,7 +116,7 @@ with st.sidebar.expander("📋 Parámetros de Consulta", expanded=True):
     calidad = st.selectbox("Calidad", [1, 0], index=0, help="1 = solo datos validados")
 
 with st.sidebar.expander("🚨 Umbrales de Riesgo (Metros)", expanded=True):
-    st.caption("Configura las cotas hidrológicas (Recomendado: Amarilla < Naranja < Roja).")
+    st.caption("Configura las cotas hidrológicas")
     u_amarillo = st.number_input("Cota Amarilla (Vigilancia)", value=4.00, step=0.10)
     u_naranja = st.number_input("Cota Naranja (Aviso de Banca)", value=6.00, step=0.10)
     u_rojo = st.number_input("Cota Roja (Desbordamiento)", value=7.00, step=0.10)

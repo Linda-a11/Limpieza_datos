@@ -104,7 +104,7 @@ def calcular_indice_calidad(df):
 
 
 # ------------------------------------------------------------------
-# Sidebar Rediseñado (Contenedores agrupados)
+# Sidebar Rediseñado con Validación Escalar de Cotas
 # ------------------------------------------------------------------
 st.sidebar.title("🛠️ Panel de Control")
 
@@ -116,10 +116,10 @@ with st.sidebar.expander("📋 Parámetros de Consulta", expanded=True):
     calidad = st.selectbox("Calidad", [1, 0], index=0, help="1 = solo datos validados")
 
 with st.sidebar.expander("🚨 Umbrales de Riesgo (Metros)", expanded=True):
-    st.caption("Configura las cotas críticas según la sección hidrológica.")
-    u_amarillo = st.number_input("Cota Amarilla (Vigilancia)", value=1.20, step=0.10)
-    u_naranja = st.number_input("Cota Naranja (Aviso de Banca)", value=1.80, step=0.10)
-    u_rojo = st.number_input("Cota Roja (Desbordamiento)", value=2.50, step=0.10)
+    st.caption("Asegúrate de mantener el orden ascendente (Amarilla < Naranja < Roja).")
+    u_amarillo = st.number_input("Cota Amarilla (Vigilancia)", value=4.00, step=0.10)
+    u_naranja = st.number_input("Cota Naranja (Aviso de Banca)", value=4.90, min_value=u_amarillo + 0.01, step=0.10)
+    u_rojo = st.number_input("Cota Roja (Desbordamiento)", value=6.00, min_value=u_naranja + 0.01, step=0.10)
 
 consultar = st.sidebar.button("🔍 Consultar y Analizar Riesgo", type="primary", use_container_width=True)
 
@@ -132,7 +132,7 @@ st.caption(f"Proyecto de Ingeniería Ambiental · Estudiante: **{nombre_estudian
 st.info(
     f"📍 **Estación Seleccionada:** Código `{codigo_estacion}` | "
     f"📅 **Rango de Análisis:** `{fecha_desde}` a `{fecha_hasta}`\n\n"
-    f"🚨 **Cotas de Alerta:** 🟡 Amarilla: `{u_amarillo:.2f} m` | 🟠 Naranja: `{u_naranja:.2f} m` | 🔴 Roja: `{u_rojo:.2f} m`"
+    f"🚨 **Cotas Configuradas:** 🟡 Amarilla: `{u_amarillo:.2f} m` | 🟠 Naranja: `{u_naranja:.2f} m` | 🔴 Roja: `{u_rojo:.2f} m`"
 )
 
 # ------------------------------------------------------------------

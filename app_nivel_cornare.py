@@ -1,8 +1,3 @@
-"""
-App de Streamlit — Nivel de ríos/quebradas (CORNARE / MARCO)
-Módulo de Gestión del Riesgo: Alertador Temprano de Crecidas Rápidas
-"""
-
 import requests
 import pandas as pd
 import numpy as np
@@ -11,12 +6,8 @@ import urllib3
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# ------------------------------------------------------------------
-# Coordenadas por defecto (Institución Universitaria Pascual Bravo)
-# ------------------------------------------------------------------
 LAT_DEFECTO = 6.059
 LON_DEFECTO = -75.0066
-
 API_BASE_URL = "https://marco.cornare.gov.co/api/v1/estaciones"
 
 LLAVE_FECHA = "level_date"
@@ -26,15 +17,14 @@ CANDIDATOS_LON = ["lng", "lon", "longitude", "longitud"]
 
 st.set_page_config(page_title="Alerta de Crecidas — CORNARE", page_icon="🌊", layout="wide")
 
-
 # ------------------------------------------------------------------
-# Funciones de consulta y procesamiento
+# Funciones de backend
 # ------------------------------------------------------------------
 def obtener_serie_nivel(codigo_estacion, desde, hasta, calidad=1, timeout=30):
     url = f"{API_BASE_URL}/{codigo_estacion}/nivel"
     params = {"desde": desde, "hasta": hasta, "calidad": calidad}
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
         "Accept": "application/json, text/plain, */*",
     }
     try:
@@ -44,7 +34,6 @@ def obtener_serie_nivel(codigo_estacion, desde, hasta, calidad=1, timeout=30):
         return None, f"HTTP {resp.status_code}"
     except requests.exceptions.RequestException as e:
         return None, f"Error de red: {e}"
-
 
 def obtener_todas_las_paginas(datos_json, timeout=30):
     registros = list(datos_json.get("values", []))
@@ -61,14 +50,11 @@ def obtener_todas_las_paginas(datos_json, timeout=30):
         siguiente_url = pagina.get("next")
     return registros
 
-
 def detectar_coordenadas(datos_json):
     if not isinstance(datos_json, dict):
         return LAT_DEFECTO, LON_DEFECTO, False
-
     lat = next((datos_json[k] for k in CANDIDATOS_LAT if k in datos_json), None)
     lon = next((datos_json[k] for k in CANDIDATOS_LON if k in datos_json), None)
-
     if lat is not None and lon is not None:
         try:
             return float(lat), float(lon), True
@@ -76,11 +62,9 @@ def detectar_coordenadas(datos_json):
             pass
     return LAT_DEFECTO, LON_DEFECTO, False
 
-
 def calcular_indice_calidad(df):
     if df.empty or len(df) < 2:
         return 0.0, 0, 0
-
     df_idx = df.set_index("fecha")
     frecuencia_tipica = df["fecha"].diff().dropna().mode()
     if len(frecuencia_tipica) == 0:
@@ -101,132 +85,99 @@ def calcular_indice_calidad(df):
     indice = (completitud * 0.7 + (1 - proporcion_outliers) * 0.3) * 100
     return round(indice, 1), int(huecos), int(es_outlier.sum())
 
+# ------------------------------------------------------------------
+# Sidebar Rediseñado
+# ------------------------------------------------------------------
+st.sidebar.title("🛠️ Panel de Control")
+
+with st.sidebar.expander("👤 Datos de Consulta", expanded=True):
+    nombre_estudiante = st.text_input("Consultante", "Linda Maria Perez Regino")
+    codigo_estacion = st.text_input("Código Estación", "21")
+    fecha_desde = st.date_input("Fecha Inicial", pd.to_datetime("2026-08-23")).strftime("%Y-%m-%d")
+    fecha_hasta = st.date_input("Fecha Final", pd.to_datetime("2026-09-07")).strftime("%Y-%m-%d")
+    calidad = st.selectbox("Calidad de Datos", [1, 0], index=0, help="1 = Datos validados")
+
+with st.sidebar.expander("🚨 Cotas de Riesgo Configurada", expanded=True):
+    u_amarillo = st.number_input("Cota Amarilla (m)", value=1.20, step=0.10)
+    u_naranja = st.number_input("Cota Naranja (m)", value=1.80, step=0.10)
+    u_rojo = st.number_input("Cota Roja (m)", value=2.50, step=0.10)
+
+consultar = st.sidebar.button("🔍 Consultar y Analizar Riesgo", type="primary", use_container_width=True)
 
 # ------------------------------------------------------------------
-# Sidebar — Parámetros de consulta y Umbrales Ambientales
+# Interfaz Principal
 # ------------------------------------------------------------------
-st.sidebar.header("📋 Parámetros de Consulta")
-nombre_estudiante = st.sidebar.text_input("Nombre del Consultante", "Linda Maria Perez Regino")
-codigo_estacion = st.sidebar.text_input("Código de estación", "21")
-fecha_desde = st.sidebar.date_input("Fecha Inicial ", pd.to_datetime("2026-08-23")).strftime("%Y-%m-%d")
-fecha_hasta = st.sidebar.date_input("fecha final ", pd.to_datetime("2026-09-07")).strftime("%Y-%m-%d")
-calidad = st.sidebar.selectbox("Calidad", [1, 0], index=0, help="1 = solo datos validados")
+st.title("🌱🌊 EcoCaudal San Luis — Sistema de Alerta Temprana")
+st.caption(f"Gestión del Riesgo Hidrológico · Consultante: **{nombre_estudiante}**")
 
-st.sidebar.markdown("---")
-st.sidebar.header("🚨 Umbrales de Riesgo (Metros)")
-st.sidebar.caption("Configura las cotas críticas según la sección hidrológica de la estación.")
-u_amarillo = st.sidebar.number_input("Cota Amarilla (Vigilancia)", value=1.20, step=0.10)
-u_naranja = st.sidebar.number_input("Cota Naranja (Aviso de Banca)", value=1.80, step=0.10)
-u_rojo = st.sidebar.number_input("Cota Roja (Desbordamiento)", value=2.50, step=0.10)
+# Bloque Informativo de Contexto Directo para la Comunidad
+st.info(
+    f"📍 **Estación Seleccionada:** Código `{codigo_estacion}` | "
+    f"📅 **Rango:** `{fecha_desde}` a `{fecha_hasta}`\n\n"
+    f"🚨 **Umbrales Activos:** 🟡 Amarilla: `{u_amarillo:.2f} m` | 🟠 Naranja: `{u_naranja:.2f} m` | 🔴 Roja: `{u_rojo:.2f} m`"
+)
 
-consultar = st.sidebar.button("🔍 Consultar y Analizar Riesgo", type="primary")
-
-# ------------------------------------------------------------------
-# Encabezado Principal
-# ------------------------------------------------------------------
-st.title("🌱🌊 EcoCaudal San Luis — Alerta Temprana y Cuidado de la Cuenca (#21)")
-st.caption(f"Proyecto de Ingeniería Ambiental · Estudiante: **{nombre_estudiante}** · Estación: **{codigo_estacion}**")
-
-# ------------------------------------------------------------------
-# Consulta y Procesamiento
-# ------------------------------------------------------------------
 if consultar:
-    with st.spinner("Consultando la API de CORNARE y procesando riesgo..."):
+    with st.status("Conectando con la red CORNARE...", expanded=True) as status:
+        st.write("Obteniendo registros hidrológicos...")
         datos_crudos, error = obtener_serie_nivel(codigo_estacion, fecha_desde, fecha_hasta, calidad)
+        
+        if not error:
+            st.write("Procesando histórico de niveles...")
+            registros = obtener_todas_las_paginas(datos_crudos)
+            status.update(label="Consulta completada con éxito", state="complete", expanded=False)
 
     if error:
         st.error(f"❌ {error}")
+    elif not registros:
+        st.warning("No se encontraron datos para la estación y rango seleccionados.")
     else:
-        registros = obtener_todas_las_paginas(datos_crudos)
+        df = pd.DataFrame(registros)
+        df = df.rename(columns={LLAVE_FECHA: "fecha", LLAVE_VALOR: "nivel"})
+        df["fecha"] = pd.to_datetime(df["fecha"], errors="coerce")
+        df["nivel"] = pd.to_numeric(df["nivel"], errors="coerce")
+        df = df.dropna(subset=["fecha", "nivel"]).sort_values("fecha").reset_index(drop=True)
 
-        if not registros:
-            st.warning("No hay registros para esta estación y rango de fechas. Prueba otro código u otro rango.")
+        lat, lon, coords_reales = detectar_coordenadas(datos_crudos)
+        indice_calidad, huecos, n_outliers = calcular_indice_calidad(df)
+
+        nivel_actual = df["nivel"].iloc[-1]
+        nivel_max = df["nivel"].max()
+        fecha_max = df.loc[df["nivel"].idxmax(), "fecha"]
+
+        # Semáforo de Riesgo
+        st.markdown("### 🚦 Estado de Alerta Operativa")
+        if nivel_actual >= u_rojo:
+            st.error(f"🔴 **ALERTA ROJA — DESBORDAMIENTO INMINENTE** (`{nivel_actual:.2f} m` >= `{u_rojo:.2f} m`) - Evacuar zonas vulnerables.")
+        elif nivel_actual >= u_naranja:
+            st.warning(f"🟠 **ALERTA NARANJA — CRECIDA SIGNIFICATIVA** (`{nivel_actual:.2f} m` >= `{u_naranja:.2f} m`) - Preparar planes de contingencia.")
+        elif nivel_actual >= u_amarillo:
+            st.info(f"🟡 **ALERTA AMARILLA — INCREMENTO DE NIVEL** (`{nivel_actual:.2f} m` >= `{u_amarillo:.2f} m`) - Monitoreo constante.")
         else:
-            df = pd.DataFrame(registros)
-            df = df.rename(columns={LLAVE_FECHA: "fecha", LLAVE_VALOR: "nivel"})
-            df["fecha"] = pd.to_datetime(df["fecha"], errors="coerce")
-            df["nivel"] = pd.to_numeric(df["nivel"], errors="coerce")
-            df = df.dropna(subset=["fecha", "nivel"]).sort_values("fecha").reset_index(drop=True)
+            st.success(f"🟢 **ESTADO NORMAL** (`{nivel_actual:.2f} m`) - Nivel dentro del cauce ordinario.")
 
-            lat, lon, coords_reales = detectar_coordenadas(datos_crudos)
-            indice_calidad, huecos, n_outliers = calcular_indice_calidad(df)
+        # Métricas
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Último Nivel", f"{nivel_actual:.2f} m")
+        c2.metric("Nivel Pico", f"{nivel_max:.2f} m")
+        c3.metric("Promedio Serie", f"{df['nivel'].mean():.2f} m")
+        c4.metric("Calidad Datos", f"{indice_calidad}%")
 
-            # --- Variables Hidrológicas para Gestión del Riesgo ---
-            nivel_actual = df["nivel"].iloc[-1]
-            nivel_max = df["nivel"].max()
-            fecha_max = df.loc[df["nivel"].idxmax(), "fecha"]
+        # Visualización Hidrológica
+        st.subheader("📈 Hidrograma con Umbrales Configurados")
+        df_grafico = df.set_index("fecha")[["nivel"]].copy()
+        df_grafico["Umbral Amarillo"] = u_amarillo
+        df_grafico["Umbral Naranja"] = u_naranja
+        df_grafico["Umbral Rojo"] = u_rojo
+        st.line_chart(df_grafico, color=["#1f77b4", "#f1c40f", "#e67e22", "#e74c3c"])
 
-            # ------------------------------------------------------
-            # MÓDULO NOVEDOSO: Semáforo de Riesgo Operativo
-            # ------------------------------------------------------
-            st.markdown("### 🚦 Estado de Alerta Hidrológica Actual")
-            
-            if nivel_actual >= u_rojo:
-                st.error(
-                    f"### 🔴 ALERTA ROJA — DESBORDAMIENTO INMINENTE O EN CURSO\n"
-                    f"**Nivel actual:** `{nivel_actual:.2f} m` (Superó la cota crítica de {u_rojo:.2f} m).\n\n"
-                    f"**Acción Ambiental/Gestión del Riesgo:** Activar protocolos de evacuación en zonas de alta vulnerabilidad. Notificar al Consejo Municipal para la Gestión del Riesgo de Desastres (CMGRD)."
-                )
-            elif nivel_actual >= u_naranja:
-                st.warning(
-                    f"### 🟠 ALERTA NARANJA — CRECIDA SIGNIFICATIVA\n"
-                    f"**Nivel actual:** `{nivel_actual:.2f} m` (Superó la cota de prevención de {u_naranja:.2f} m).\n\n"
-                    f"**Acción Ambiental/Gestión del Riesgo:** Alerta preventiva para comunidades ribereñas. Monitoreo constante del tiempo de concentración de la cuenca."
-                )
-            elif nivel_actual >= u_amarillo:
-                st.info(
-                    f"### 🟡 ALERTA AMARILLA — INCREMENTO DE NIVEL\n"
-                    f"**Nivel actual:** `{nivel_actual:.2f} m` (Superó el umbral de vigilancia de {u_amarillo:.2f} m).\n\n"
-                    f"**Acción Ambiental/Gestión del Riesgo:** Vigilancia continua del comportamiento pluviométrico en la cuenca alta."
-                )
-            else:
-                st.success(
-                    f"### 🟢 ESTADO NORMAL — CAUCE ORDINARIO\n"
-                    f"**Nivel actual:** `{nivel_actual:.2f} m` (Por debajo de las cotas de advertencia).\n\n"
-                    f"**Acción Ambiental/Gestión del Riesgo:** Condiciones hidrológicas estables."
-                )
+        # Mapa y Descargas
+        st.subheader("📍 Coordenadas de Monitoreo")
+        st.map(pd.DataFrame({"lat": [lat], "lon": [lon]}), zoom=10)
 
-            st.markdown("---")
-
-            # --- Métricas Principales ---
-            col1, col2, col3, col4 = st.columns(4)
-            col1.metric("Nivel Último Reporte", f"{nivel_actual:.2f} m")
-            col2.metric("Nivel Máximo (Pico)", f"{nivel_max:.2f} m")
-            col3.metric("Promedio de la Serie", f"{df['nivel'].mean():.2f} m")
-            col4.metric("Índice Calidad Datos", f"{indice_calidad} / 100")
-
-            # --- Gráfico con Líneas de Umbral de Riesgo ---
-            st.subheader("📈 Hidrograma de Nivel con Cotas de Seguridad")
-            
-            # Crear dataframe para visualización comparativa con los umbrales
-            df_grafico = df.set_index("fecha")[["nivel"]].copy()
-            df_grafico["Umbral Amarillo"] = u_amarillo
-            df_grafico["Umbral Naranja"] = u_naranja
-            df_grafico["Umbral Rojo"] = u_rojo
-            
-            st.line_chart(df_grafico, color=["#1f77b4", "#f1c40f", "#e67e22", "#e74c3c"])
-
-            # --- Ubicación de la Estación ---
-            st.subheader("📍 Ubicación de la Estación de Monitoreo")
-            if not coords_reales:
-                st.caption("La API no trajo coordenadas reales. Mostrando punto de referencia predeterminado.")
-            st.map(pd.DataFrame({"lat": [lat], "lon": [lon]}), zoom=10)
-
-            # --- Detalles Técnicos y Descarga ---
-            with st.expander("🔬 Evaluación de Calidad de Datos Hidrológicos"):
-                st.write(f"- **Pico máximo registrado:** {nivel_max:.2f} m el `{fecha_max}`")
-                st.write(f"- **Huecos de reporte detectados:** {huecos}")
-                st.write(f"- **Anomalías/Outliers (IQR):** {n_outliers} lecturas de {len(df)}")
-
-            with st.expander("📄 Ver Datos Crudos"):
-                st.dataframe(df, use_container_width=True)
-
+        with st.expander("📄 Exportar y Ver Registros Crudos"):
+            st.dataframe(df, use_container_width=True)
             csv = df.to_csv(index=False).encode("utf-8")
-            st.download_button(
-                "⬇️ Descargar Serie Histórica (CSV)",
-                csv,
-                file_name=f"alerta_crecidas_estacion_{codigo_estacion}.csv",
-                mime="text/csv"
-            )
+            st.download_button("⬇️ Descargar Serie (CSV)", csv, f"estacion_{codigo_estacion}.csv", "text/csv")
 else:
-    st.info("Ajusta los parámetros y umbrales de riesgo en el menú izquierdo y presiona **Consultar y Analizar Riesgo**.")
+    st.info("👈 Presiona **Consultar y Analizar Riesgo** en la barra lateral para obtener los datos más recientes.")

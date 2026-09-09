@@ -212,7 +212,7 @@ if consultar:
             # ------------------------------------------------------
             st.subheader("📈 Hidrograma de Nivel con Cotas de Seguridad")
             
-            tab_interactiva, tab_basica = st.tabs(["📊 Vista Interactiva (Plotly)", "📈 Vista Simplificada"])
+            tab_interactiva, tab_basica = st.tabs(["📊 Vista Interactiva", "📈 Vista Simplificada"])
 
             with tab_interactiva:
                 fig = px.line(

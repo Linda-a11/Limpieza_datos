@@ -106,7 +106,7 @@ def calcular_indice_calidad(df):
 # Sidebar — Parámetros de consulta y Umbrales Ambientales
 # ------------------------------------------------------------------
 st.sidebar.header("📋 Parámetros de Consulta")
-nombre_estudiante = st.sidebar.text_input("Nombre del estudiante", "Tu Nombre Aquí")
+nombre_estudiante = st.sidebar.text_input("Nombre del estudiante", "Linda Maria Perez Regino")
 codigo_estacion = st.sidebar.text_input("Código de estación", "42")
 fecha_desde = st.sidebar.date_input("Desde", pd.to_datetime("2026-08-23")).strftime("%Y-%m-%d")
 fecha_hasta = st.sidebar.date_input("Hasta", pd.to_datetime("2026-08-30")).strftime("%Y-%m-%d")
